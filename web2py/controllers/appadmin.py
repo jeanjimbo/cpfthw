@@ -66,25 +66,23 @@ databases = get_databases(None)
 
 
 def eval_in_global_env(text):
-    exec ('_ret=%s' % text, {}, global_env)
+    exec(f'_ret={text}', {}, global_env)
     return global_env['_ret']
 
 
 def get_database(request):
     if request.args and request.args[0] in databases:
         return eval_in_global_env(request.args[0])
-    else:
-        session.flash = T('invalid request')
-        redirect(URL('index'))
+    session.flash = T('invalid request')
+    redirect(URL('index'))
 
 
 def get_table(request):
     db = get_database(request)
     if len(request.args) > 1 and request.args[1] in db.tables:
         return (db, request.args[1])
-    else:
-        session.flash = T('invalid request')
-        redirect(URL('index'))
+    session.flash = T('invalid request')
+    redirect(URL('index'))
 
 
 def get_query(request):
@@ -95,16 +93,12 @@ def get_query(request):
 
 
 def query_by_table_type(tablename,db,request=request):
-    keyed = hasattr(db[tablename],'_primarykey')
-    if keyed:
+    if keyed := hasattr(db[tablename], '_primarykey'):
         firstkey = db[tablename][db[tablename]._primarykey[0]]
-        cond = '>0'
-        if firstkey.type in ['string', 'text']:
-            cond = '!=""'
-        qry = '%s.%s.%s%s' % (request.args[0], request.args[1], firstkey.name, cond)
+        cond = '!=""' if firstkey.type in ['string', 'text'] else '>0'
+        return f'{request.args[0]}.{request.args[1]}.{firstkey.name}{cond}'
     else:
-        qry = '%s.%s.id>0' % tuple(request.args[:2])
-    return qry
+        return '%s.%s.id>0' % tuple(request.args[:2])
 
 
 
@@ -252,8 +246,7 @@ def update():
     keyed = hasattr(db[table],'_primarykey')
     record = None
     if keyed:
-        key = [f for f in request.vars if f in db[table]._primarykey]
-        if key:
+        if key := [f for f in request.vars if f in db[table]._primarykey]:
             record = db(db[table][key[0]] == request.vars[key[0]], ignore_common_filters=True).select().first()
     else:
         record = db(db[table].id == request.args(2),ignore_common_filters=True).select().first()
@@ -288,7 +281,7 @@ def update():
 
 
 def state():
-    return dict()
+    return {}
 
 def ccache():
     form = FORM(
@@ -424,8 +417,7 @@ def ccache():
     disk['keys'] = key_table(disk['keys'])
     total['keys'] = key_table(total['keys'])
 
-    return dict(form=form, total=total,
-                ram=ram, disk=disk, object_stats=hp != False)
+    return dict(form=form, total=total, ram=ram, disk=disk, object_stats=hp)
 
 
 
